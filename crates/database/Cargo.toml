@@ -1,0 +1,14 @@
+[package]
+name = "bce_exchange_database"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "src/database.rs"
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+bce_exchange_client.workspace = true
+chrono.workspace = true
+serde.workspace = true

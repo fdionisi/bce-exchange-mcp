@@ -1,0 +1,15 @@
+[package]
+name = "bce_exchange_provider"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "src/provider.rs"
+
+[dependencies]
+anyhow.workspace = true
+bce_exchange_client.workspace = true
+bce_exchange_database.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+http-client.workspace = true
