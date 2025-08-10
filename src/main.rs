@@ -5,7 +5,10 @@ use bce_exchange_database_sqlite::SqliteStorageAdapter;
 use bce_exchange_mcp_primitives::tools::RateConversion;
 use bce_exchange_provider::BceExchangeProvider;
 use context_server::{ContextServer, ContextServerRpcRequest, ContextServerRpcResponse};
-use context_server_utils::tool_registry::ToolRegistry;
+use context_server_utils::{
+    prompt_registry::PromptRegistry, resource_registry::ResourceRegistry,
+    tool_registry::ToolRegistry,
+};
 use http_client::HttpClient;
 use http_client_reqwest::HttpClientReqwest;
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -31,6 +34,10 @@ struct ContextServerState {
 
 impl ContextServerState {
     async fn new(http_client: Arc<dyn HttpClient>) -> Result<Self> {
+        let resource_registry = Arc::new(ResourceRegistry::default());
+
+        let prompt_registry = Arc::new(PromptRegistry::default());
+
         let tool_registry = Arc::new(ToolRegistry::default());
 
         let db_path = get_database_directory()?.join("exchange.db");
@@ -44,6 +51,8 @@ impl ContextServerState {
             rpc: ContextServer::builder()
                 .with_server_info((env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
                 .with_tools(tool_registry)
+                .with_resources(resource_registry)
+                .with_prompts(prompt_registry)
                 .build()?,
         })
     }
