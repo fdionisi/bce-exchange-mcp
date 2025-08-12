@@ -7,11 +7,25 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 #[derive(Deserialize, JsonSchema, Serialize)]
-struct RateConversionParams {
-    #[schemars(description = "The currency to convert from (e.g., EUR, USD, JPY)")]
-    from_currency: String,
+struct CurrencyValue {
+    #[schemars(description = "The currency code (e.g., EUR, USD, JPY)")]
+    currency: String,
+    #[schemars(description = "The amount to convert")]
+    amount: f64,
+}
+
+#[derive(Deserialize, JsonSchema, Serialize)]
+struct RateConversionItem {
+    #[schemars(description = "Currency value to convert from")]
+    from_value: CurrencyValue,
     #[schemars(description = "The target currency to convert to (e.g., EUR, USD, JPY)")]
     target_currency: String,
+}
+
+#[derive(Deserialize, JsonSchema, Serialize)]
+struct RateConversionParams {
+    #[schemars(description = "Array of currency conversions to perform")]
+    conversions: Vec<RateConversionItem>,
 }
 
 pub struct RateConversion {
@@ -35,17 +49,31 @@ impl ToolExecutor for RateConversion {
                 .map_err(|_| anyhow!("Invalid arguments"))?
         };
 
-        let result = self
-            .ecb_exchange_provider
-            .rate_conversion(&params.from_currency, &params.target_currency)
-            .await?;
+        let mut results = Vec::new();
+
+        for conversion in params.conversions {
+            let rate = self
+                .ecb_exchange_provider
+                .rate_conversion(&conversion.from_value.currency, &conversion.target_currency)
+                .await?;
+
+            let converted_amount = conversion.from_value.amount * rate;
+
+            results.push(json!({
+                "rate": rate,
+                "from": {
+                    "currency": conversion.from_value.currency,
+                    "amount": conversion.from_value.amount
+                },
+                "to": {
+                    "currency": conversion.target_currency,
+                    "amount": converted_amount
+                }
+            }));
+        }
 
         Ok(vec![ToolContent::Text {
-            text: json!({
-                params.from_currency: 1.0.to_string(),
-                params.target_currency: result.to_string(),
-            })
-            .to_string(),
+            text: json!(results).to_string(),
         }])
     }
 
